@@ -1,4 +1,16 @@
 import { defineConfig, devices } from "@playwright/test";
+import fs from "node:fs";
+import path from "node:path";
+
+const localChromePath = path.resolve(
+  __dirname,
+  ".local-browsers",
+  "chrome-win64",
+  "chrome.exe"
+);
+const chromeExecutablePath =
+  process.env.PLAYWRIGHT_CHROME_EXECUTABLE_PATH ??
+  (fs.existsSync(localChromePath) ? localChromePath : undefined);
 
 export default defineConfig({
   testDir: "./tests",
@@ -19,7 +31,12 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: {
+        ...devices["Desktop Chrome"],
+        launchOptions: chromeExecutablePath
+          ? { executablePath: chromeExecutablePath }
+          : undefined,
+      },
     },
   ],
 });

@@ -1,0 +1,11 @@
+.git
+.gitignore
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.mypy_cache
+**/.DS_Store
+**/node_modules
+frontend/.next
+frontend/test-results
+frontend/playwright-report

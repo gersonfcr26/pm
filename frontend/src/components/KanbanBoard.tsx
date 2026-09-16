@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { type ReactNode, useState } from "react";
 import {
+  type CollisionDetection,
   DndContext,
   DragOverlay,
   PointerSensor,
+  pointerWithin,
   useSensor,
   useSensors,
   closestCorners,
@@ -15,20 +17,48 @@ import { KanbanColumn } from "@/components/KanbanColumn";
 import { KanbanCardPreview } from "@/components/KanbanCardPreview";
 import { createId, initialData, moveCard, type BoardData } from "@/lib/kanban";
 
-export const KanbanBoard = () => {
-  const [board, setBoard] = useState<BoardData>(() => initialData);
+const collisionDetectionStrategy: CollisionDetection = (args) => {
+  const pointerCollisions = pointerWithin(args);
+  return pointerCollisions.length > 0 ? pointerCollisions : closestCorners(args);
+};
+
+type KanbanBoardProps = {
+  headerAction?: ReactNode;
+  initialBoard?: BoardData;
+  onBoardChange?: (nextBoard: BoardData) => void;
+};
+
+export const KanbanBoard = ({
+  headerAction,
+  initialBoard,
+  onBoardChange,
+}: KanbanBoardProps) => {
+  const [board, setBoard] = useState<BoardData>(() => initialBoard ?? initialData);
+  const [syncedBoard, setSyncedBoard] = useState(initialBoard);
   const [activeCardId, setActiveCardId] = useState<string | null>(null);
+
+  // Adopt a new board supplied by the parent (initial load, or an applied AI update).
+  if (initialBoard && initialBoard !== syncedBoard) {
+    setSyncedBoard(initialBoard);
+    setBoard(initialBoard);
+  }
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: { distance: 6 },
+      activationConstraint: { distance: 2 },
     })
   );
 
-  const cardsById = useMemo(() => board.cards, [board.cards]);
-
   const handleDragStart = (event: DragStartEvent) => {
     setActiveCardId(event.active.id as string);
+  };
+
+  const applyBoardUpdate = (updater: (prev: BoardData) => BoardData) => {
+    setBoard((prev) => {
+      const next = updater(prev);
+      onBoardChange?.(next);
+      return next;
+    });
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -39,14 +69,14 @@ export const KanbanBoard = () => {
       return;
     }
 
-    setBoard((prev) => ({
+    applyBoardUpdate((prev) => ({
       ...prev,
       columns: moveCard(prev.columns, active.id as string, over.id as string),
     }));
   };
 
   const handleRenameColumn = (columnId: string, title: string) => {
-    setBoard((prev) => ({
+    applyBoardUpdate((prev) => ({
       ...prev,
       columns: prev.columns.map((column) =>
         column.id === columnId ? { ...column, title } : column
@@ -56,7 +86,7 @@ export const KanbanBoard = () => {
 
   const handleAddCard = (columnId: string, title: string, details: string) => {
     const id = createId("card");
-    setBoard((prev) => ({
+    applyBoardUpdate((prev) => ({
       ...prev,
       cards: {
         ...prev.cards,
@@ -71,25 +101,20 @@ export const KanbanBoard = () => {
   };
 
   const handleDeleteCard = (columnId: string, cardId: string) => {
-    setBoard((prev) => {
-      return {
-        ...prev,
-        cards: Object.fromEntries(
-          Object.entries(prev.cards).filter(([id]) => id !== cardId)
-        ),
-        columns: prev.columns.map((column) =>
-          column.id === columnId
-            ? {
-                ...column,
-                cardIds: column.cardIds.filter((id) => id !== cardId),
-              }
-            : column
-        ),
-      };
-    });
+    applyBoardUpdate((prev) => ({
+      ...prev,
+      cards: Object.fromEntries(
+        Object.entries(prev.cards).filter(([id]) => id !== cardId)
+      ),
+      columns: prev.columns.map((column) =>
+        column.id === columnId
+          ? { ...column, cardIds: column.cardIds.filter((id) => id !== cardId) }
+          : column
+      ),
+    }));
   };
 
-  const activeCard = activeCardId ? cardsById[activeCardId] : null;
+  const activeCard = activeCardId ? board.cards[activeCardId] : null;
 
   return (
     <div className="relative overflow-hidden">
@@ -111,13 +136,16 @@ export const KanbanBoard = () => {
                 and capture quick notes without getting buried in settings.
               </p>
             </div>
-            <div className="rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--gray-text)]">
-                Focus
-              </p>
-              <p className="mt-2 text-lg font-semibold text-[var(--primary-blue)]">
-                One board. Five columns. Zero clutter.
-              </p>
+            <div className="flex min-w-[240px] flex-col gap-3">
+              {headerAction ? <div className="self-end">{headerAction}</div> : null}
+              <div className="rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] px-5 py-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--gray-text)]">
+                  Focus
+                </p>
+                <p className="mt-2 text-lg font-semibold text-[var(--primary-blue)]">
+                  One board. Five columns. Zero clutter.
+                </p>
+              </div>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-4">
@@ -135,7 +163,7 @@ export const KanbanBoard = () => {
 
         <DndContext
           sensors={sensors}
-          collisionDetection={closestCorners}
+          collisionDetection={collisionDetectionStrategy}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >

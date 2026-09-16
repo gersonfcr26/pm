@@ -1,6 +1,7 @@
 import clsx from "clsx";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { useState } from "react";
 import type { Card, Column } from "@/lib/kanban";
 import { KanbanCard } from "@/components/KanbanCard";
 import { NewCardForm } from "@/components/NewCardForm";
@@ -21,33 +22,55 @@ export const KanbanColumn = ({
   onDeleteCard,
 }: KanbanColumnProps) => {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
+  const [titleDraft, setTitleDraft] = useState(column.title);
+  const [syncedTitle, setSyncedTitle] = useState(column.title);
+
+  if (column.title !== syncedTitle) {
+    setSyncedTitle(column.title);
+    setTitleDraft(column.title);
+  }
+
+  const commitTitle = () => {
+    const trimmed = titleDraft.trim();
+    if (!trimmed) {
+      setTitleDraft(column.title);
+      return;
+    }
+    setTitleDraft(trimmed);
+    if (trimmed !== column.title) {
+      onRename(column.id, trimmed);
+    }
+  };
 
   return (
     <section
-      ref={setNodeRef}
       className={clsx(
         "flex min-h-[520px] flex-col rounded-3xl border border-[var(--stroke)] bg-[var(--surface-strong)] p-4 shadow-[var(--shadow)] transition",
         isOver && "ring-2 ring-[var(--accent-yellow)]"
       )}
       data-testid={`column-${column.id}`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="w-full">
-          <div className="flex items-center gap-3">
-            <div className="h-2 w-10 rounded-full bg-[var(--accent-yellow)]" />
-            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--gray-text)]">
-              {cards.length} cards
-            </span>
-          </div>
-          <input
-            value={column.title}
-            onChange={(event) => onRename(column.id, event.target.value)}
-            className="mt-3 w-full bg-transparent font-display text-lg font-semibold text-[var(--navy-dark)] outline-none"
-            aria-label="Column title"
-          />
+      <div>
+        <div className="flex items-center gap-3">
+          <div className="h-2 w-10 rounded-full bg-[var(--accent-yellow)]" />
+          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--gray-text)]">
+            {cards.length} cards
+          </span>
         </div>
+        <input
+          value={titleDraft}
+          onChange={(event) => setTitleDraft(event.target.value)}
+          onBlur={commitTitle}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.currentTarget.blur();
+            }
+          }}
+          className="mt-3 w-full bg-transparent font-display text-lg font-semibold text-[var(--navy-dark)] outline-none"
+          aria-label="Column title"
+        />
       </div>
-      <div className="mt-4 flex flex-1 flex-col gap-3">
+      <div ref={setNodeRef} className="mt-4 flex flex-1 flex-col gap-3" data-testid={`lane-${column.id}`}>
         <SortableContext items={column.cardIds} strategy={verticalListSortingStrategy}>
           {cards.map((card) => (
             <KanbanCard

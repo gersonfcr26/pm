@@ -19,6 +19,16 @@ describe("KanbanBoard", () => {
     expect(input).toHaveValue("New Name");
   });
 
+  it("rejects an empty column title and reverts on blur", async () => {
+    render(<KanbanBoard />);
+    const column = getFirstColumn();
+    const input = within(column).getByLabelText("Column title");
+    const originalTitle = (input as HTMLInputElement).value;
+    await userEvent.clear(input);
+    await userEvent.tab();
+    expect(input).toHaveValue(originalTitle);
+  });
+
   it("adds and removes a card", async () => {
     render(<KanbanBoard />);
     const column = getFirstColumn();
