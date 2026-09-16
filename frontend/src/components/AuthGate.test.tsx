@@ -2,10 +2,11 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthGate } from "@/components/AuthGate";
-import { initialData, type BoardData } from "@/lib/kanban";
+import { type BoardData } from "@/lib/kanban";
+import { sampleBoard } from "@/test/sampleBoard";
 
 const makeBoard = (): BoardData =>
-  JSON.parse(JSON.stringify(initialData)) as BoardData;
+  JSON.parse(JSON.stringify(sampleBoard)) as BoardData;
 
 describe("AuthGate", () => {
   beforeEach(() => {

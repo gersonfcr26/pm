@@ -1,17 +1,25 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { KanbanBoard } from "@/components/KanbanBoard";
+import { type BoardData } from "@/lib/kanban";
+import { sampleBoard } from "@/test/sampleBoard";
 
 const getFirstColumn = () => screen.getAllByTestId(/column-/i)[0];
 
+const StatefulBoard = () => {
+  const [board, setBoard] = useState<BoardData>(sampleBoard);
+  return <KanbanBoard board={board} onBoardChange={setBoard} />;
+};
+
 describe("KanbanBoard", () => {
   it("renders five columns", () => {
-    render(<KanbanBoard />);
+    render(<StatefulBoard />);
     expect(screen.getAllByTestId(/column-/i)).toHaveLength(5);
   });
 
   it("renames a column", async () => {
-    render(<KanbanBoard />);
+    render(<StatefulBoard />);
     const column = getFirstColumn();
     const input = within(column).getByLabelText("Column title");
     await userEvent.clear(input);
@@ -20,7 +28,7 @@ describe("KanbanBoard", () => {
   });
 
   it("rejects an empty column title and reverts on blur", async () => {
-    render(<KanbanBoard />);
+    render(<StatefulBoard />);
     const column = getFirstColumn();
     const input = within(column).getByLabelText("Column title");
     const originalTitle = (input as HTMLInputElement).value;
@@ -30,7 +38,7 @@ describe("KanbanBoard", () => {
   });
 
   it("adds and removes a card", async () => {
-    render(<KanbanBoard />);
+    render(<StatefulBoard />);
     const column = getFirstColumn();
     const addButton = within(column).getByRole("button", {
       name: /add a card/i,

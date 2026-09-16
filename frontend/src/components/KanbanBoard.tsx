@@ -15,7 +15,7 @@ import {
 } from "@dnd-kit/core";
 import { KanbanColumn } from "@/components/KanbanColumn";
 import { KanbanCardPreview } from "@/components/KanbanCardPreview";
-import { createId, initialData, moveCard, type BoardData } from "@/lib/kanban";
+import { createId, moveCard, type BoardData } from "@/lib/kanban";
 
 const collisionDetectionStrategy: CollisionDetection = (args) => {
   const pointerCollisions = pointerWithin(args);
@@ -23,25 +23,17 @@ const collisionDetectionStrategy: CollisionDetection = (args) => {
 };
 
 type KanbanBoardProps = {
+  board: BoardData;
+  onBoardChange: (nextBoard: BoardData) => void;
   headerAction?: ReactNode;
-  initialBoard?: BoardData;
-  onBoardChange?: (nextBoard: BoardData) => void;
 };
 
 export const KanbanBoard = ({
-  headerAction,
-  initialBoard,
+  board,
   onBoardChange,
+  headerAction,
 }: KanbanBoardProps) => {
-  const [board, setBoard] = useState<BoardData>(() => initialBoard ?? initialData);
-  const [syncedBoard, setSyncedBoard] = useState(initialBoard);
   const [activeCardId, setActiveCardId] = useState<string | null>(null);
-
-  // Adopt a new board supplied by the parent (initial load, or an applied AI update).
-  if (initialBoard && initialBoard !== syncedBoard) {
-    setSyncedBoard(initialBoard);
-    setBoard(initialBoard);
-  }
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -54,11 +46,7 @@ export const KanbanBoard = ({
   };
 
   const applyBoardUpdate = (updater: (prev: BoardData) => BoardData) => {
-    setBoard((prev) => {
-      const next = updater(prev);
-      onBoardChange?.(next);
-      return next;
-    });
+    onBoardChange(updater(board));
   };
 
   const handleDragEnd = (event: DragEndEvent) => {

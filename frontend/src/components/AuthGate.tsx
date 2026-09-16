@@ -3,9 +3,9 @@
 import { FormEvent, type ReactNode, useState } from "react";
 import { AiSidebar } from "@/components/AiSidebar";
 import { KanbanBoard } from "@/components/KanbanBoard";
+import { MVP_USERNAME, fetchBoard, saveBoard } from "@/lib/api";
 import { type BoardData } from "@/lib/kanban";
 
-const MVP_USERNAME = "user";
 const MVP_PASSWORD = "password";
 
 const secondaryButtonClass =
@@ -41,14 +41,7 @@ export const AuthGate = () => {
     setLoadError("");
 
     try {
-      const response = await fetch(`/api/board?username=${encodeURIComponent(MVP_USERNAME)}`);
-
-      if (!response.ok) {
-        throw new Error(`load failed: ${response.status}`);
-      }
-
-      const payload = (await response.json()) as { board: BoardData };
-      setBoard(payload.board);
+      setBoard(await fetchBoard());
     } catch {
       setLoadError("Unable to load your board. Please try again.");
     } finally {
@@ -61,17 +54,7 @@ export const AuthGate = () => {
     setSaveError("");
 
     try {
-      const response = await fetch(`/api/board?username=${encodeURIComponent(MVP_USERNAME)}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(nextBoard),
-      });
-
-      if (!response.ok) {
-        throw new Error(`save failed: ${response.status}`);
-      }
+      await saveBoard(nextBoard);
     } catch {
       setSaveError("Last change could not be saved. Please try again.");
     }
@@ -135,7 +118,7 @@ export const AuthGate = () => {
     return (
       <main className="mx-auto max-w-[1900px] px-3 py-3">
         <KanbanBoard
-          initialBoard={board}
+          board={board}
           onBoardChange={persistBoard}
           headerAction={
             <div className="flex items-center gap-2">
