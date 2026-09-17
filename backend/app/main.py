@@ -272,6 +272,26 @@ def _safe_chat_response(warning: str, model: str) -> AIChatResponse:
   )
 
 
+def _parse_chat_response(raw_response: str, model: str) -> AIChatResponse:
+  """Validate the model's raw output, falling back to a safe response."""
+  try:
+    parsed = json.loads(raw_response)
+  except json.JSONDecodeError:
+    return _safe_chat_response("Model output was not valid JSON.", model)
+
+  try:
+    response = AIChatResponse.model_validate(parsed)
+  except ValidationError:
+    return _safe_chat_response(
+      "Model output did not match required response schema.",
+      model,
+    )
+
+  response.model = model
+  response.provider = _provider_from_model(model)
+  return response
+
+
 def _load_board_response(
   connection: sqlite3.Connection, user_id: int, username: str
 ) -> BoardResponse:
@@ -380,20 +400,7 @@ def ai_chat(payload: AIChatRequest, username: str = DEFAULT_USERNAME) -> AIChatR
   except OpenRouterUpstreamError as exc:
     raise HTTPException(status_code=502, detail=str(exc)) from exc
 
-  try:
-    parsed = json.loads(raw_response)
-  except json.JSONDecodeError:
-    response = _safe_chat_response("Model output was not valid JSON.", model_used)
-  else:
-    try:
-      response = AIChatResponse.model_validate(parsed)
-      response.model = model_used
-      response.provider = _provider_from_model(model_used)
-    except ValidationError:
-      response = _safe_chat_response(
-        "Model output did not match required response schema.",
-        model_used,
-      )
+  response = _parse_chat_response(raw_response, model_used)
 
   history.extend(
     [
@@ -401,8 +408,7 @@ def ai_chat(payload: AIChatRequest, username: str = DEFAULT_USERNAME) -> AIChatR
       {"role": "assistant", "content": response.assistantMessage},
     ]
   )
-  if len(history) > MAX_HISTORY_MESSAGES:
-    CHAT_HISTORY_BY_USER[username] = history[-MAX_HISTORY_MESSAGES:]
+  del history[:-MAX_HISTORY_MESSAGES]
 
   return response
 

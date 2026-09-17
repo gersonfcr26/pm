@@ -85,13 +85,8 @@ def _post_chat_completion(
       f"OpenRouter returned status {response.status_code}.",
     )
 
-  data = response.json()
-  content = (
-    data.get("choices", [{}])[0]
-    .get("message", {})
-    .get("content")
-  )
-  answer = _extract_text(content)
+  choices = response.json().get("choices") or [{}]
+  answer = _extract_text(choices[0].get("message", {}).get("content"))
   if not answer:
     logging.warning("OpenRouter response did not include assistant content.")
     raise OpenRouterUpstreamError(

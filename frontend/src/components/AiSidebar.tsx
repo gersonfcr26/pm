@@ -1,27 +1,13 @@
 "use client";
 
 import { FormEvent, type KeyboardEvent, useState } from "react";
+import { sendChatPrompt } from "@/lib/api";
 import { type BoardData } from "@/lib/kanban";
 
 type ChatMessage = {
   id: string;
   role: "user" | "assistant";
   content: string;
-};
-
-type AIChatBoardUpdate = {
-  mode: "replace";
-  reason: string;
-  payload: BoardData;
-};
-
-type AIChatResponse = {
-  model?: string;
-  provider?: string;
-  version: string;
-  assistantMessage: string;
-  boardUpdate: AIChatBoardUpdate | null;
-  warnings: string[];
 };
 
 type ProposedUpdate = {
@@ -34,8 +20,6 @@ type AiSidebarProps = {
   onApplyBoardUpdate: (nextBoard: BoardData) => Promise<void>;
   onClose?: () => void;
 };
-
-const MVP_USERNAME = "user";
 
 export const AiSidebar = ({ board, onApplyBoardUpdate, onClose }: AiSidebarProps) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -72,22 +56,7 @@ export const AiSidebar = ({ board, onApplyBoardUpdate, onClose }: AiSidebarProps
     setIsSending(true);
 
     try {
-      const response = await fetch(`/api/ai/chat?username=${encodeURIComponent(MVP_USERNAME)}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          prompt: nextPrompt,
-          board,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`chat failed: ${response.status}`);
-      }
-
-      const payload = (await response.json()) as AIChatResponse;
+      const payload = await sendChatPrompt(nextPrompt, board);
       setProviderTag(payload.provider ?? "OpenRouter");
       addMessage("assistant", payload.assistantMessage);
 
