@@ -69,7 +69,7 @@ Auth is a frontend-only gate (`frontend/src/components/AuthGate.tsx`) checking h
 
 - `backend/app/openrouter_client.py` wraps OpenRouter calls, including the primary→fallback model/key retry on 429.
 - The chat endpoint sends the current board JSON + user prompt + in-memory (per-process, not persisted) history to the model and expects a structured response:
-  - `version`, `assistantMessage`, `boardUpdate` (nullable: `{mode: replace|patch, reason, payload}`), `warnings[]`.
+  - `version`, `assistantMessage`, `boardUpdate` (nullable: `{mode: replace, reason, payload}`), `warnings[]`.
 - The backend strictly validates the AI's structured output before returning it; malformed output is rejected rather than trusted.
 - The AI never applies board changes directly. `AiSidebar.tsx` renders any proposed `boardUpdate` as a confirmation step; the board is only mutated (and persisted) when the user explicitly confirms. Rejecting/canceling leaves the board untouched.
 
