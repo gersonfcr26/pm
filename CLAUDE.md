@@ -12,7 +12,7 @@ A Project Management MVP: a single-user (MVP scope) Kanban board with an AI chat
 - Storage: SQLite, one JSON board blob per user (see `docs/DB_SCHEMA.md`).
 - Packaging: single multi-stage Dockerfile (builds frontend, then runs FastAPI which serves it); `uv` installs Python deps in the image.
 - Full requirements, tech decisions, and coding standards live in `AGENTS.md` at repo root — read it before making product/architecture decisions. Per-directory `AGENTS.md` files (`backend/AGENTS.md`, `frontend/AGENTS.md`, `scripts/AGENTS.md`) describe local scope/conventions.
-- `docs/PLAN.md` is the authoritative, test-first execution checklist for the whole build (parts 1-10, all currently complete). `docs/DB_SCHEMA.md` documents the approved SQLite schema and JSON board shape.
+- `docs/PLAN.md` is the authoritative, test-first execution checklist for the whole build (parts 1-10). `docs/DB_SCHEMA.md` documents the approved SQLite schema and JSON board shape.
 
 ## Commands
 
